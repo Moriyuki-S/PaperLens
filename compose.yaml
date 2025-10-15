@@ -1,0 +1,15 @@
+services:
+  paperlens:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        USER_UID: ${LOCAL_UID:-1000}
+        USER_GID: ${LOCAL_GID:-1000}
+        USERNAME: ${USERNAME:-developer}
+    ports:
+      - "1420:1420"
+    volumes:
+      - .:/workspace/PaperLens
+    command: >
+      bash -lc "bun install --frozen-lockfile && bun run tauri dev"
