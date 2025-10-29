@@ -10,7 +10,7 @@ import {
     useRef,
     useState,
 } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
+import { Document, Outline, Page, pdfjs } from 'react-pdf';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -47,9 +47,12 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
     const dropZoneRef = useRef<HTMLDivElement | null>(null);
     const dragDepthRef = useRef(0);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(
+        null,
+    );
     const [containerWidth, setContainerWidth] = useState<number>();
-    const [numPages, setNumPages] = useState(0);
-    const [isDragActive, setIsDragActive] = useState(false);
+    const [numPages, setNumPages] = useState<number>(0);
+    const [isDragActive, setIsDragActive] = useState<boolean>(false);
 
     const updateWidth = useCallback(() => {
         const element = dropZoneRef.current;
@@ -147,7 +150,85 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
 
     const handleLoadSuccess = useCallback((pdf: PDFDocumentProxy) => {
         setNumPages(pdf.numPages);
+        setPdfDocument(pdf);
     }, []);
+
+    const handleOutlineItemClick = useCallback(
+        async ({
+            dest,
+            pageNumber,
+        }: {
+            dest?: unknown;
+            pageIndex: number;
+            pageNumber: number;
+        }) => {
+            if (!pdfDocument || !dest) {
+                return;
+            }
+
+            try {
+                // Get the destination array
+                const destination =
+                    typeof dest === 'string'
+                        ? await pdfDocument.getDestination(dest)
+                        : dest;
+
+                if (!Array.isArray(destination)) {
+                    return;
+                }
+
+                const [ref] = destination;
+
+                // Get page index from reference
+                const targetPageIndex =
+                    typeof ref === 'object' && ref !== null
+                        ? await pdfDocument.getPageIndex(ref)
+                        : pageNumber - 1;
+
+                // Find the target page element
+                const pageElement = document.querySelector(
+                    `[data-page-number="${targetPageIndex + 1}"]`,
+                ) as HTMLElement | null;
+
+                if (pageElement) {
+                    // Get the page viewport to calculate the Y position
+                    const page = await pdfDocument.getPage(targetPageIndex + 1);
+                    const viewport = page.getViewport({ scale: 1 });
+
+                    // destination[3] contains the Y coordinate
+                    const destY =
+                        typeof destination[3] === 'number' ? destination[3] : 0;
+
+                    // Calculate scroll position (PDF Y coordinates are from bottom)
+                    const scrollContainer =
+                        dropZoneRef.current?.querySelector('.overflow-auto');
+                    if (scrollContainer) {
+                        const pageRect = pageElement.getBoundingClientRect();
+                        const containerRect =
+                            scrollContainer.getBoundingClientRect();
+
+                        // Convert PDF coordinates to screen coordinates
+                        const scale = pageRect.height / viewport.height;
+                        const offsetY = (viewport.height - destY) * scale;
+
+                        const scrollTop =
+                            pageElement.offsetTop +
+                            offsetY -
+                            containerRect.height / 5;
+
+                        scrollContainer.scrollTo({
+                            top: Math.max(0, scrollTop),
+                            behavior: 'smooth',
+                        });
+                    }
+                }
+            } catch (error) {
+                //FIXME: エラーハンドリング
+                console.error('Failed to navigate to outline item:', error);
+            }
+        },
+        [pdfDocument],
+    );
 
     const pages = useMemo(() => {
         return Array.from({ length: numPages }, (_, index) => {
@@ -241,6 +322,13 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                                 options={options}
                                 className="flex flex-col items-center gap-6"
                             >
+                                <Outline
+                                    className={[
+                                        '[&>ul]:list-disc',
+                                        '[&>ul]:pl-5]}',
+                                    ]}
+                                    onItemClick={handleOutlineItemClick}
+                                />
                                 {pages}
                             </Document>
                         </div>
