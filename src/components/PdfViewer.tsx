@@ -1,29 +1,28 @@
 import { Skeleton } from '@heroui/skeleton';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
-import { Document, Page, pdfjs } from 'react-pdf';
 import {
+    type ChangeEvent,
+    type DragEvent,
+    type ReactNode,
     useCallback,
     useEffect,
     useMemo,
     useRef,
     useState,
-    type ChangeEvent,
-    type DragEvent,
-    type ReactNode,
 } from 'react';
+import { Document, Page, pdfjs } from 'react-pdf';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
+    'pdfjs-dist/build/pdf.worker.min.mjs',
+    import.meta.url,
 ).toString();
-
 
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
 interface PdfViewerProps {
     className?: string;
-};
+}
 
 const options = {
     cMapUrl: '/cmaps/',
@@ -43,9 +42,7 @@ const LoadingSkeleton = () => (
     </div>
 );
 
-export const PdfViewer = ({
-    className = '',
-}: PdfViewerProps) => {
+export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const dropZoneRef = useRef<HTMLDivElement | null>(null);
     const dragDepthRef = useRef(0);
@@ -87,11 +84,6 @@ export const PdfViewer = ({
         };
     }, [updateWidth]);
 
-    // Reset number of pages when selected file changes
-    useEffect(() => {
-        setNumPages(0);
-    }, [selectedFile]);
-
     const selectFile = useCallback((files: FileList | File[] | null) => {
         if (!files || files.length === 0) {
             return;
@@ -116,6 +108,7 @@ export const PdfViewer = ({
         (event: ChangeEvent<HTMLInputElement>) => {
             selectFile(event.target.files);
             event.target.value = '';
+            setNumPages(0);
         },
         [selectFile],
     );
@@ -163,7 +156,7 @@ export const PdfViewer = ({
             const availableWidth =
                 containerWidth && containerWidth > innerPadding
                     ? containerWidth - innerPadding
-                    : containerWidth ?? undefined;
+                    : (containerWidth ?? undefined);
 
             return (
                 <Page
@@ -198,6 +191,7 @@ export const PdfViewer = ({
                 className="hidden"
             />
 
+            {/** biome-ignore lint/a11y/noStaticElementInteractions: PDFドラッグに必要なコンポーネントのため */}
             <div
                 ref={dropZoneRef}
                 className={`${dropZoneBase} ${dropZoneActive}`}
@@ -239,7 +233,11 @@ export const PdfViewer = ({
                                         PDFの読み込みに失敗しました。
                                     </Message>
                                 }
-                                noData={<Message>PDFファイルを選択してください</Message>}
+                                noData={
+                                    <Message>
+                                        PDFファイルを選択してください
+                                    </Message>
+                                }
                                 options={options}
                                 className="flex flex-col items-center gap-6"
                             >
@@ -274,4 +272,3 @@ export const PdfViewer = ({
         </div>
     );
 };
-

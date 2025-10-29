@@ -36,7 +36,8 @@
 			"extensions": [
 				"rust-lang.rust-analyzer",
 				"tauri-apps.tauri-vscode",
-				"vitest.explorer"
+				"vitest.explorer",
+				"biomejs.biome"
 			]
 		}
 	},
