@@ -17,11 +17,16 @@ pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url,
 ).toString();
 
+
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
 interface PdfViewerProps {
     className?: string;
+};
+
+const options = {
+    cMapUrl: '/cmaps/',
 };
 
 const Message = ({ children }: { children: ReactNode }) => (
@@ -235,6 +240,7 @@ export const PdfViewer = ({
                                     </Message>
                                 }
                                 noData={<Message>PDFファイルを選択してください</Message>}
+                                options={options}
                                 className="flex flex-col items-center gap-6"
                             >
                                 {pages}
