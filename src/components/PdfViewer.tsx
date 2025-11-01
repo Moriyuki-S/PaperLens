@@ -35,10 +35,10 @@ const Message = ({ children }: { children: ReactNode }) => (
 );
 
 const LoadingSkeleton = () => (
-    <div className="flex flex-col gap-4 p-6">
-        <Skeleton className="h-6 w-48 rounded-large" />
-        <Skeleton className="h-[460px] w-full rounded-large" />
-        <Skeleton className="h-[460px] w-full rounded-large" />
+    <div className="flex w-full flex-col gap-4">
+        <Skeleton className="h-6 w-48 w-full rounded-large" />
+        <Skeleton className="h-[700px] w-full rounded-large" />
+        <Skeleton className="h-[700px] w-full rounded-large" />
     </div>
 );
 
@@ -320,7 +320,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                                     </Message>
                                 }
                                 options={options}
-                                className="flex flex-col items-center gap-6"
+                                className="w-full flex flex-col items-center gap-6"
                             >
                                 <Outline
                                     className={[
