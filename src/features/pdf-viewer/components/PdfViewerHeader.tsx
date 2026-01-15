@@ -1,10 +1,21 @@
+import { LuBookmark } from 'react-icons/lu';
+
 import { cn } from '../../../lib/utils';
+
+interface Bookmark {
+    id: string;
+    pageNumber: number;
+    label: string;
+}
 
 interface PdfViewerHeaderProps {
     selectedFileName?: string | null;
     onSelectClick: () => void;
     onAddBookmark: () => void;
     canAddBookmark: boolean;
+    bookmark: Bookmark | null;
+    onBookmarkClick: (pageNumber: number) => void;
+    onRemoveBookmark: (id: string) => void;
 }
 
 export const PdfViewerHeader = ({
@@ -12,7 +23,13 @@ export const PdfViewerHeader = ({
     onSelectClick,
     onAddBookmark,
     canAddBookmark,
+    bookmark,
+    onBookmarkClick,
+    onRemoveBookmark,
 }: PdfViewerHeaderProps) => {
+    const hasBookmark = Boolean(bookmark);
+    const addLabel = hasBookmark ? '栞を更新' : '栞を追加';
+
     return (
         <div
             className={cn([
@@ -63,6 +80,54 @@ export const PdfViewerHeader = ({
                 PaperLens PDF
             </h1>
             <div className={cn(['flex items-center', 'gap-2'])}>
+                {bookmark ? (
+                    <div
+                        className={cn([
+                            'flex items-center rounded-full',
+                            'border border-[#e5e5e5] bg-white',
+                            'px-1 py-1 shadow-sm',
+                            'transition hover:border-[#d4d4d4]',
+                        ])}
+                    >
+                        <button
+                            type="button"
+                            onClick={() => onBookmarkClick(bookmark.pageNumber)}
+                            className={cn([
+                                'group inline-flex items-center gap-2',
+                                'rounded-full px-3 py-1',
+                                'text-xs font-medium text-[#1a1a1a]',
+                                'transition hover:bg-[#f5f5f5]',
+                            ])}
+                            title={bookmark.label}
+                            aria-label={`栞: ${bookmark.label}`}
+                        >
+                            <LuBookmark className={cn(['h-4 w-4'])} />
+                            <span className={cn(['max-w-[140px] truncate'])}>
+                                {bookmark.label}
+                            </span>
+                            <span
+                                className={cn([
+                                    'rounded-full bg-white px-2 py-0.5',
+                                    'text-[10px] text-[#6b7280]',
+                                ])}
+                            >
+                                {`p.${bookmark.pageNumber}`}
+                            </span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onRemoveBookmark(bookmark.id)}
+                            className={cn([
+                                'mr-1 flex h-6 w-6 items-center justify-center',
+                                'rounded-full text-[#6b7280]',
+                                'transition hover:bg-[#f5f5f5] hover:text-[#1a1a1a]',
+                            ])}
+                            aria-label="栞を削除"
+                        >
+                            ×
+                        </button>
+                    </div>
+                ) : null}
                 <button
                     type="button"
                     onClick={onAddBookmark}
@@ -76,7 +141,7 @@ export const PdfViewerHeader = ({
                         'focus-visible:outline-offset-2 focus-visible:outline-[#1a1a1a]',
                         'disabled:cursor-not-allowed disabled:opacity-40',
                     ])}
-                    aria-label="栞を追加"
+                    aria-label={addLabel}
                 >
                     <svg
                         viewBox="0 0 24 24"
@@ -85,7 +150,7 @@ export const PdfViewerHeader = ({
                         strokeWidth="1.5"
                         className={cn(['h-5', 'w-5'])}
                     >
-                        <title>栞を追加</title>
+                        <title>{addLabel}</title>
                         <path
                             strokeLinecap="round"
                             strokeLinejoin="round"

@@ -13,7 +13,6 @@ import {
 import { Document, Page, pdfjs } from 'react-pdf';
 
 import { cn } from '../../lib/utils';
-import { PdfBookmarkPanel } from './components/PdfBookmarkPanel';
 import { PdfEmptyState } from './components/PdfEmptyState';
 import { PdfOutlinePanel } from './components/PdfOutlinePanel';
 import { PdfViewerHeader } from './components/PdfViewerHeader';
@@ -29,6 +28,12 @@ import 'react-pdf/dist/Page/TextLayer.css';
 
 interface PdfViewerProps {
     className?: string;
+}
+
+interface Bookmark {
+    id: string;
+    pageNumber: number;
+    label: string;
 }
 
 const options = {
@@ -72,9 +77,9 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [hasRenderedPage, setHasRenderedPage] = useState<boolean>(false);
     const [hasLoadError, setHasLoadError] = useState<boolean>(false);
-    const [bookmarks, setBookmarks] = useState<
-        Array<{ id: string; pageNumber: number; label: string }>
-    >([]);
+    const [isOutlineCollapsed, setIsOutlineCollapsed] =
+        useState<boolean>(false);
+    const [bookmark, setBookmark] = useState<Bookmark | null>(null);
     const [selectionMenu, setSelectionMenu] = useState<{
         text: string;
         pageNumber: number;
@@ -88,6 +93,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         hoveredOutlineId,
         setHoveredOutlineId,
     } = usePdfOutline(pdfDocument, currentPage);
+    const canAddBookmark = Boolean(selectedFile) && numPages > 0;
 
     const updateWidth = useCallback(() => {
         const element = pageAreaRef.current;
@@ -140,7 +146,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         setSelectedFile(pdfFile);
         setNumPages(0);
         setPdfDocument(null);
-        setBookmarks([]);
+        setBookmark(null);
         setCurrentPage(1);
         setScrollProgress(0);
         setHasRenderedPage(false);
@@ -332,21 +338,16 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         if (!selectedFile || numPages === 0) {
             return;
         }
-        setBookmarks((prev) => {
-            const nextId = `${Date.now()}-${prev.length}`;
-            return [
-                {
-                    id: nextId,
-                    pageNumber: currentPage,
-                    label: `Page ${currentPage}`,
-                },
-                ...prev,
-            ];
+        const nextId = `${Date.now()}`;
+        setBookmark({
+            id: nextId,
+            pageNumber: currentPage,
+            label: `Page ${currentPage}`,
         });
     }, [currentPage, numPages, selectedFile]);
 
     const handleRemoveBookmark = useCallback((id: string) => {
-        setBookmarks((prev) => prev.filter((bookmark) => bookmark.id !== id));
+        setBookmark((prev) => (prev && prev.id === id ? null : prev));
     }, []);
 
     const handleSelectionMenu = useCallback(() => {
@@ -430,16 +431,11 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                 ? `${selectionMenu.text.slice(0, 77)}...`
                 : selectionMenu.text;
 
-        setBookmarks((prev) => {
-            const nextId = `${Date.now()}-${prev.length}`;
-            return [
-                {
-                    id: nextId,
-                    pageNumber: selectionMenu.pageNumber,
-                    label,
-                },
-                ...prev,
-            ];
+        const nextId = `${Date.now()}`;
+        setBookmark({
+            id: nextId,
+            pageNumber: selectionMenu.pageNumber,
+            label,
         });
 
         window.getSelection()?.removeAllRanges();
@@ -556,7 +552,10 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                 selectedFileName={selectedFile?.name ?? null}
                 onSelectClick={() => fileInputRef.current?.click()}
                 onAddBookmark={handleAddBookmark}
-                canAddBookmark={Boolean(selectedFile)}
+                canAddBookmark={canAddBookmark}
+                bookmark={bookmark}
+                onBookmarkClick={handleBookmarkClick}
+                onRemoveBookmark={handleRemoveBookmark}
             />
             <div className={cn(['h-0.5 w-full', 'bg-[#e5e5e5]'])}>
                 <div
@@ -602,8 +601,12 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                             activeOutlineId={activeOutlineId}
                             activeOutlineIds={activeOutlineIds}
                             hoveredOutlineId={hoveredOutlineId}
+                            isCollapsed={isOutlineCollapsed}
                             onHoverChange={setHoveredOutlineId}
                             onItemClick={handleOutlineEntryClick}
+                            onToggle={() =>
+                                setIsOutlineCollapsed((prev) => !prev)
+                            }
                         />
 
                         <main
@@ -715,44 +718,23 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                             </div>
                         </main>
 
-                        <PdfBookmarkPanel
-                            bookmarks={bookmarks}
-                            selectedFileName={selectedFile?.name ?? null}
-                            onAddBookmark={handleAddBookmark}
-                            onBookmarkClick={handleBookmarkClick}
-                            onRemoveBookmark={handleRemoveBookmark}
-                        />
                     </Document>
                 ) : (
                     <div className={cn(['flex h-full'])}>
-                        <aside
-                            className={cn([
-                                'flex w-64 flex-col',
-                                'border-r border-[#e5e5e5] bg-[#f5f5f5]',
-                            ])}
-                        >
-                            <div
-                                className={cn([
-                                    'flex items-center justify-between',
-                                    'border-b border-[#e5e5e5]',
-                                    'px-4 py-3',
-                                ])}
-                            >
-                                <h2 className={cn(['text-sm', 'font-semibold'])}>
-                                    目次
-                                </h2>
-                            </div>
-                            <div
-                                className={cn([
-                                    'flex-1 overflow-auto',
-                                    'px-4 py-3',
-                                ])}
-                            >
-                                <p className={cn(['text-xs', 'text-[#6b7280]'])}>
-                                    目次はPDF読み込み後に表示されます。
-                                </p>
-                            </div>
-                        </aside>
+                        <PdfOutlinePanel
+                            numPages={numPages}
+                            outlineItems={outlineWithPages}
+                            activeOutlineId={activeOutlineId}
+                            activeOutlineIds={activeOutlineIds}
+                            hoveredOutlineId={hoveredOutlineId}
+                            isCollapsed={isOutlineCollapsed}
+                            emptyMessage="目次はPDF読み込み後に表示されます。"
+                            onHoverChange={setHoveredOutlineId}
+                            onItemClick={handleOutlineEntryClick}
+                            onToggle={() =>
+                                setIsOutlineCollapsed((prev) => !prev)
+                            }
+                        />
 
                         <main
                             className={cn(['flex min-w-0 flex-1 flex-col'])}
@@ -782,34 +764,6 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                             </div>
                         </main>
 
-                        <aside
-                            className={cn([
-                                'flex w-64 flex-col',
-                                'border-l border-[#e5e5e5] bg-[#f5f5f5]',
-                            ])}
-                        >
-                            <div
-                                className={cn([
-                                    'flex items-center justify-between',
-                                    'border-b border-[#e5e5e5]',
-                                    'px-4 py-3',
-                                ])}
-                            >
-                                <h2 className={cn(['text-sm', 'font-semibold'])}>
-                                    栞
-                                </h2>
-                            </div>
-                            <div
-                                className={cn([
-                                    'flex-1 overflow-auto',
-                                    'px-4 py-3',
-                                ])}
-                            >
-                                <p className={cn(['text-xs', 'text-[#6b7280]'])}>
-                                    栞はまだありません。
-                                </p>
-                            </div>
-                        </aside>
                     </div>
                 )}
             </div>
