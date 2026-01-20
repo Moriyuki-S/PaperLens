@@ -30,15 +30,21 @@ interface PdfViewerProps {
     className?: string;
 }
 
-interface Bookmark {
-    id: string;
-    pageNumber: number;
-    label: string;
+interface PageSize {
+    width: number;
+    height: number;
 }
 
 const options = {
     cMapUrl: '/cmaps/',
 };
+const ZOOM_MIN = 0.6;
+const DEFAULT_ZOOM = 0.9;
+const ZOOM_MAX = 2;
+const ZOOM_STEP = 0.1;
+const clampZoom = (value: number) =>
+    Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value));
+const roundZoom = (value: number) => Math.round(value * 10) / 10;
 
 const Message = ({ children }: { children: ReactNode }) => (
     <div
@@ -79,10 +85,10 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
     const [hasLoadError, setHasLoadError] = useState<boolean>(false);
     const [isOutlineCollapsed, setIsOutlineCollapsed] =
         useState<boolean>(false);
-    const [bookmark, setBookmark] = useState<Bookmark | null>(null);
+    const [zoom, setZoom] = useState<number>(DEFAULT_ZOOM);
+    const [pageSizes, setPageSizes] = useState<Record<number, PageSize>>({});
     const [selectionMenu, setSelectionMenu] = useState<{
         text: string;
-        pageNumber: number;
         top: number;
         left: number;
     } | null>(null);
@@ -93,10 +99,15 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         hoveredOutlineId,
         setHoveredOutlineId,
     } = usePdfOutline(pdfDocument, currentPage);
-    const canAddBookmark = Boolean(selectedFile) && numPages > 0;
+    const hasPdf = Boolean(selectedFile) && numPages > 0;
+    const zoomLabel = `${Math.round((zoom / DEFAULT_ZOOM) * 100)}%`;
+    const canZoomIn = hasPdf && zoom < ZOOM_MAX;
+    const canZoomOut = hasPdf && zoom > ZOOM_MIN;
+    const canResetZoom = hasPdf && zoom !== DEFAULT_ZOOM;
+    const canPrint = Boolean(selectedFile);
 
     const updateWidth = useCallback(() => {
-        const element = pageAreaRef.current;
+        const element = scrollContainerRef.current;
         if (element) {
             setContainerWidth(element.clientWidth);
         }
@@ -146,11 +157,12 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         setSelectedFile(pdfFile);
         setNumPages(0);
         setPdfDocument(null);
-        setBookmark(null);
         setCurrentPage(1);
         setScrollProgress(0);
         setHasRenderedPage(false);
         setHasLoadError(false);
+        setZoom(DEFAULT_ZOOM);
+        setPageSizes({});
         dragDepthRef.current = 0;
         setIsDragActive(false);
     }, []);
@@ -205,8 +217,26 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         setHasLoadError(true);
     }, []);
 
-    const handlePageRenderSuccess = useCallback(() => {
+    const handlePageRenderSuccess = useCallback((page: {
+        pageNumber: number;
+        width: number;
+        height: number;
+    }) => {
         setHasRenderedPage((prev) => prev || true);
+        setPageSizes((prev) => {
+            const current = prev[page.pageNumber];
+            if (
+                current &&
+                current.width === page.width &&
+                current.height === page.height
+            ) {
+                return prev;
+            }
+            return {
+                ...prev,
+                [page.pageNumber]: { width: page.width, height: page.height },
+            };
+        });
     }, []);
 
     const handleOutlineItemClick = useCallback(
@@ -243,7 +273,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
 
                 // Find the target page element
                 const pageElement = document.querySelector(
-                    `[data-page-number="${targetPageIndex + 1}"]`,
+                    `[data-page-wrapper="${targetPageIndex + 1}"]`,
                 ) as HTMLElement | null;
 
                 if (pageElement) {
@@ -311,7 +341,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         setScrollProgress(progress);
 
         const pageElements = Array.from(
-            container.querySelectorAll('[data-page-number]'),
+            container.querySelectorAll('[data-page-wrapper]'),
         ) as HTMLElement[];
         if (pageElements.length === 0) {
             return;
@@ -322,7 +352,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         for (const pageElement of pageElements) {
             if (pageElement.offsetTop + pageElement.offsetHeight >= anchor) {
                 const parsed = Number(
-                    pageElement.getAttribute('data-page-number'),
+                    pageElement.getAttribute('data-page-wrapper'),
                 );
                 pageNumber = Number.isNaN(parsed) ? pageNumber : parsed;
                 break;
@@ -333,22 +363,6 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
             setCurrentPage(pageNumber);
         }
     }, [currentPage]);
-
-    const handleAddBookmark = useCallback(() => {
-        if (!selectedFile || numPages === 0) {
-            return;
-        }
-        const nextId = `${Date.now()}`;
-        setBookmark({
-            id: nextId,
-            pageNumber: currentPage,
-            label: `Page ${currentPage}`,
-        });
-    }, [currentPage, numPages, selectedFile]);
-
-    const handleRemoveBookmark = useCallback((id: string) => {
-        setBookmark((prev) => (prev && prev.id === id ? null : prev));
-    }, []);
 
     const handleSelectionMenu = useCallback(() => {
         if (!selectedFile || numPages === 0) {
@@ -382,7 +396,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                 ? anchorNode
                 : anchorNode?.parentElement;
         const pageElement = anchorElement?.closest(
-            '[data-page-number]',
+            '[data-page-wrapper]',
         ) as HTMLElement | null;
 
         if (!pageElement) {
@@ -390,10 +404,10 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
             return;
         }
 
-        const pageNumber = Number(
-            pageElement.getAttribute('data-page-number'),
+        const pageNumberValue = Number(
+            pageElement.getAttribute('data-page-wrapper'),
         );
-        if (!pageNumber || Number.isNaN(pageNumber)) {
+        if (!pageNumberValue || Number.isNaN(pageNumberValue)) {
             setSelectionMenu(null);
             return;
         }
@@ -415,32 +429,10 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
 
         setSelectionMenu({
             text: selectedText,
-            pageNumber,
             left: menuLeft,
             top: Math.max(menuTop, 8),
         });
     }, [numPages, selectedFile]);
-
-    const handleSelectionBookmark = useCallback(() => {
-        if (!selectionMenu) {
-            return;
-        }
-
-        const label =
-            selectionMenu.text.length > 80
-                ? `${selectionMenu.text.slice(0, 77)}...`
-                : selectionMenu.text;
-
-        const nextId = `${Date.now()}`;
-        setBookmark({
-            id: nextId,
-            pageNumber: selectionMenu.pageNumber,
-            label,
-        });
-
-        window.getSelection()?.removeAllRanges();
-        setSelectionMenu(null);
-    }, [selectionMenu]);
 
     const handleSelectionTranslate = useCallback(() => {
         if (!selectionMenu) {
@@ -450,28 +442,51 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         setSelectionMenu(null);
     }, [selectionMenu]);
 
-    const handleBookmarkClick = useCallback(
-        (pageNumber: number) => {
-            const container = scrollContainerRef.current;
-            if (!container) {
-                return;
-            }
+    const handleZoomIn = useCallback(() => {
+        setZoom((prev) => clampZoom(roundZoom(prev + ZOOM_STEP)));
+    }, []);
 
-            const pageElement = container.querySelector(
-                `[data-page-number="${pageNumber}"]`,
-            ) as HTMLElement | null;
+    const handleZoomOut = useCallback(() => {
+        setZoom((prev) => clampZoom(roundZoom(prev - ZOOM_STEP)));
+    }, []);
 
-            if (!pageElement) {
-                return;
-            }
+    const handleZoomReset = useCallback(() => {
+        setZoom(DEFAULT_ZOOM);
+    }, []);
 
-            container.scrollTo({
-                top: Math.max(0, pageElement.offsetTop - 24),
-                behavior: 'smooth',
-            });
-        },
-        [],
-    );
+    const handlePrint = useCallback(() => {
+        if (!selectedFile) {
+            return;
+        }
+        const objectUrl = URL.createObjectURL(selectedFile);
+        const printWindow = window.open(objectUrl);
+        if (!printWindow) {
+            URL.revokeObjectURL(objectUrl);
+            return;
+        }
+
+        const cleanup = () => {
+            URL.revokeObjectURL(objectUrl);
+        };
+
+        printWindow.addEventListener(
+            'load',
+            () => {
+                printWindow.focus();
+                printWindow.print();
+            },
+            { once: true },
+        );
+        printWindow.addEventListener(
+            'afterprint',
+            () => {
+                cleanup();
+                printWindow.close();
+            },
+            { once: true },
+        );
+        setTimeout(cleanup, 60_000);
+    }, [selectedFile]);
 
     useEffect(() => {
         if (selectedFile) {
@@ -501,27 +516,66 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                 containerWidth && containerWidth > innerPadding
                     ? containerWidth - innerPadding
                     : (containerWidth ?? undefined);
+            const baseWidth = availableWidth
+                ? Math.min(availableWidth, 1200)
+                : undefined;
+            const pageSize = pageSizes[pageNumber];
+            const pageRatio = pageSize
+                ? pageSize.height / pageSize.width
+                : undefined;
+            const baseHeight =
+                pageRatio && baseWidth
+                    ? Math.round(baseWidth * pageRatio)
+                    : undefined;
+            const scaledWidth =
+                baseWidth && zoom !== 1
+                    ? Math.round(baseWidth * zoom)
+                    : baseWidth;
+            const scaledHeight =
+                baseHeight && zoom !== 1
+                    ? Math.round(baseHeight * zoom)
+                    : baseHeight;
 
             return (
-                <Page
+                <div
                     key={`page_${pageNumber}`}
-                    pageNumber={pageNumber}
-                    renderAnnotationLayer
-                    renderTextLayer
-                    width={
-                        availableWidth
-                            ? Math.min(availableWidth, 1200)
-                            : undefined
-                    }
-                    className={cn([
-                        'mx-auto overflow-hidden',
-                        'rounded-large shadow-sm',
-                    ])}
-                    onRenderSuccess={handlePageRenderSuccess}
-                />
+                    data-page-wrapper={pageNumber}
+                    className={cn(['mx-auto flex justify-center'])}
+                    style={{
+                        width: scaledWidth,
+                        height: scaledHeight,
+                    }}
+                >
+                    <div
+                        className={cn(['inline-block'])}
+                        style={{
+                            transform:
+                                zoom === 1 ? undefined : `scale(${zoom})`,
+                            transformOrigin: 'top center',
+                        }}
+                    >
+                        <Page
+                            pageNumber={pageNumber}
+                            renderAnnotationLayer
+                            renderTextLayer
+                            width={baseWidth}
+                            className={cn([
+                                'mx-auto overflow-hidden',
+                                'rounded-large shadow-sm',
+                            ])}
+                            onRenderSuccess={handlePageRenderSuccess}
+                        />
+                    </div>
+                </div>
             );
         });
-    }, [containerWidth, handlePageRenderSuccess, numPages]);
+    }, [
+        containerWidth,
+        handlePageRenderSuccess,
+        numPages,
+        pageSizes,
+        zoom,
+    ]);
 
     const dropZoneActive = isDragActive
         ? 'outline outline-2 outline-offset-0 outline-[#1a1a1a] ring-0'
@@ -551,11 +605,15 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
             <PdfViewerHeader
                 selectedFileName={selectedFile?.name ?? null}
                 onSelectClick={() => fileInputRef.current?.click()}
-                onAddBookmark={handleAddBookmark}
-                canAddBookmark={canAddBookmark}
-                bookmark={bookmark}
-                onBookmarkClick={handleBookmarkClick}
-                onRemoveBookmark={handleRemoveBookmark}
+                onZoomIn={handleZoomIn}
+                onZoomOut={handleZoomOut}
+                onZoomReset={handleZoomReset}
+                zoomLabel={zoomLabel}
+                canZoomIn={canZoomIn}
+                canZoomOut={canZoomOut}
+                canResetZoom={canResetZoom}
+                onPrint={handlePrint}
+                canPrint={canPrint}
             />
             <div className={cn(['h-0.5 w-full', 'bg-[#e5e5e5]'])}>
                 <div
@@ -627,8 +685,21 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                                     ref={pageAreaRef}
                                     className={cn([
                                         'mx-auto w-full',
-                                        'max-w-5xl',
+                                        zoom > 1 ? 'max-w-none' : 'max-w-5xl',
                                     ])}
+                                    style={{
+                                        minWidth:
+                                            zoom > 1 &&
+                                            containerWidth &&
+                                            containerWidth > 48
+                                                ? `${Math.round(
+                                                      Math.min(
+                                                          containerWidth - 48,
+                                                          1200,
+                                                      ) * zoom,
+                                                  )}px`
+                                                : undefined,
+                                    }}
                                 >
                                     {selectionMenu ? (
                                         <div
@@ -652,19 +723,6 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                                                     transform: 'translateX(-50%)',
                                                 }}
                                             >
-                                                <button
-                                                    type="button"
-                                                    onClick={
-                                                        handleSelectionBookmark
-                                                    }
-                                                    className={cn([
-                                                        'rounded-md px-2 py-1',
-                                                        'text-[#1a1a1a]',
-                                                        'transition hover:bg-[#f5f5f5]',
-                                                    ])}
-                                                >
-                                                    栞に追加
-                                                </button>
                                                 <button
                                                     type="button"
                                                     onClick={
