@@ -7,6 +7,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
+
 const require = createRequire(import.meta.url);
 
 const pdfjsDistPath = path.dirname(require.resolve('pdfjs-dist/package.json'));
@@ -26,6 +27,11 @@ export default defineConfig(async () => ({
      ],
    }),
   ],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
+  },
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //
