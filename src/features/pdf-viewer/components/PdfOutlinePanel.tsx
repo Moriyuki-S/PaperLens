@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 
+import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { cn } from '../../../lib/utils';
 import type { OutlineEntry } from '../hooks/usePdfOutline';
 
@@ -150,28 +152,27 @@ export const PdfOutlinePanel = ({
                     {numPages ? `${numPages}ページ` : ''}
                 </span>
             </div>
-            <div
+            <ScrollArea
                 className={cn(
-                    [
-                        'flex-1 overflow-auto px-4 py-3',
-                        'transition-all duration-200',
-                    ],
+                    ['flex-1 transition-all duration-200'],
                     isCollapsed
                         ? 'pointer-events-none -translate-x-2 opacity-0'
                         : 'translate-x-0 opacity-100',
                 )}
                 aria-hidden={isCollapsed}
             >
-                {outlineItems.length === 0 ? (
-                    <p className={cn(['text-xs', 'text-[#6b7280]'])}>
-                        {emptyMessage}
-                    </p>
-                ) : (
-                    <div className={cn(['text-sm', 'text-[#6b7280]'])}>
-                        {renderOutlineItems(outlineItems)}
-                    </div>
-                )}
-            </div>
+                <div className={cn(['px-4 py-3'])}>
+                    {outlineItems.length === 0 ? (
+                        <p className={cn(['text-xs', 'text-[#6b7280]'])}>
+                            {emptyMessage}
+                        </p>
+                    ) : (
+                        <div className={cn(['text-sm', 'text-[#6b7280]'])}>
+                            {renderOutlineItems(outlineItems)}
+                        </div>
+                    )}
+                </div>
+            </ScrollArea>
         </aside>
     );
 };
