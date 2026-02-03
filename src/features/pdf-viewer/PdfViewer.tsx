@@ -94,11 +94,6 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
     const [isSourceDialogOpen, setIsSourceDialogOpen] =
         useState<boolean>(false);
     const [urlInput, setUrlInput] = useState<string>('');
-    const [selectionMenu, setSelectionMenu] = useState<{
-        text: string;
-        top: number;
-        left: number;
-    } | null>(null);
     const {
         outlineWithPages,
         activeOutlineId,
@@ -435,87 +430,6 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         }
     }, [currentPage]);
 
-    const handleSelectionMenu = useCallback(() => {
-        if (!selectedSource || numPages === 0) {
-            setSelectionMenu(null);
-            return;
-        }
-
-        const selection = window.getSelection();
-        if (!selection || selection.isCollapsed) {
-            setSelectionMenu(null);
-            return;
-        }
-
-        const selectedText = selection.toString().trim();
-        if (!selectedText) {
-            setSelectionMenu(null);
-            return;
-        }
-
-        const range = selection.getRangeAt(0);
-        const rects = range.getClientRects();
-        const rect = rects[0] ?? range.getBoundingClientRect();
-        if (!rect || rect.width === 0) {
-            setSelectionMenu(null);
-            return;
-        }
-
-        const anchorNode = selection.anchorNode;
-        const anchorElement =
-            anchorNode instanceof HTMLElement
-                ? anchorNode
-                : anchorNode?.parentElement;
-        const pageElement = anchorElement?.closest(
-            '[data-page-wrapper]',
-        ) as HTMLElement | null;
-
-        if (!pageElement) {
-            setSelectionMenu(null);
-            return;
-        }
-
-        const pageNumberValue = Number(
-            pageElement.getAttribute('data-page-wrapper'),
-        );
-        if (!pageNumberValue || Number.isNaN(pageNumberValue)) {
-            setSelectionMenu(null);
-            return;
-        }
-
-        const container = scrollContainerRef.current;
-        if (
-            !container ||
-            !anchorElement ||
-            !container.contains(anchorElement)
-        ) {
-            setSelectionMenu(null);
-            return;
-        }
-
-        const containerRect = container.getBoundingClientRect();
-        const menuLeft =
-            rect.left -
-            containerRect.left +
-            container.scrollLeft +
-            rect.width / 2;
-        const menuTop = rect.top - containerRect.top + container.scrollTop - 12;
-
-        setSelectionMenu({
-            text: selectedText,
-            left: menuLeft,
-            top: Math.max(menuTop, 8),
-        });
-    }, [selectedSource, numPages]);
-
-    const handleSelectionTranslate = useCallback(() => {
-        if (!selectionMenu) {
-            return;
-        }
-        window.getSelection()?.removeAllRanges();
-        setSelectionMenu(null);
-    }, [selectionMenu]);
-
     const handleZoomIn = useCallback(() => {
         setZoom((prev) => clampZoom(roundZoom(prev + ZOOM_STEP)));
     }, []);
@@ -591,20 +505,6 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
             handleScroll();
         }
     }, [handleScroll, selectedSource]);
-
-    useEffect(() => {
-        const handleSelectionChange = () => {
-            handleSelectionMenu();
-        };
-
-        document.addEventListener('selectionchange', handleSelectionChange);
-        return () => {
-            document.removeEventListener(
-                'selectionchange',
-                handleSelectionChange,
-            );
-        };
-    }, [handleSelectionMenu]);
 
     const pages = useMemo(() => {
         return Array.from({ length: numPages }, (_, index) => {
@@ -788,45 +688,6 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                                                 : undefined,
                                     }}
                                 >
-                                    {selectionMenu ? (
-                                        <div
-                                            className={cn([
-                                                'pointer-events-none absolute left-0 top-0',
-                                                'z-30',
-                                            ])}
-                                            aria-hidden
-                                        >
-                                            <div
-                                                className={cn([
-                                                    'pointer-events-auto flex items-center',
-                                                    'gap-2 rounded-md border border-[#e5e5e5]',
-                                                    'bg-white px-3 py-2',
-                                                    'text-xs shadow-md',
-                                                ])}
-                                                style={{
-                                                    left: `${selectionMenu.left}px`,
-                                                    top: `${selectionMenu.top}px`,
-                                                    position: 'absolute',
-                                                    transform:
-                                                        'translateX(-50%)',
-                                                }}
-                                            >
-                                                <button
-                                                    type="button"
-                                                    onClick={
-                                                        handleSelectionTranslate
-                                                    }
-                                                    className={cn([
-                                                        'rounded-md px-2 py-1',
-                                                        'text-[#6b7280]',
-                                                        'transition hover:bg-[#f5f5f5]',
-                                                    ])}
-                                                >
-                                                    日本語訳
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : null}
                                     {numPages === 0 ? (
                                         hasLoadError ? null : (
                                             <LoadingSkeleton />
