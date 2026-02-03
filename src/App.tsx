@@ -1,10 +1,11 @@
-import { Button } from '@heroui/button';
+import { PdfViewer } from './features/pdf-viewer';
+import { cn } from './lib/utils';
 
 function App() {
     return (
-        <main className="container">
-            <Button>こんにちは</Button>
-        </main>
+        <div className={cn(['fixed inset-0', 'flex flex-col'])}>
+            <PdfViewer className={cn(['h-full w-full'])} />
+        </div>
     );
 }
 
