@@ -3,6 +3,7 @@ import type { PDFDocumentProxy } from 'pdfjs-dist';
 import {
     type ChangeEvent,
     type DragEvent,
+    type FormEvent,
     type ReactNode,
     useCallback,
     useEffect,
@@ -15,6 +16,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { cn } from '../../lib/utils';
 import { PdfEmptyState } from './components/PdfEmptyState';
 import { PdfOutlinePanel } from './components/PdfOutlinePanel';
+import { PdfSourceDialog } from './components/PdfSourceDialog';
 import { PdfViewerHeader } from './components/PdfViewerHeader';
 import { type OutlineEntry, usePdfOutline } from './hooks/usePdfOutline';
 
@@ -73,6 +75,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
     const pageAreaRef = useRef<HTMLDivElement | null>(null);
     const dragDepthRef = useRef(0);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
     const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(
         null,
     );
@@ -87,6 +90,9 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         useState<boolean>(false);
     const [zoom, setZoom] = useState<number>(DEFAULT_ZOOM);
     const [pageSizes, setPageSizes] = useState<Record<number, PageSize>>({});
+    const [isSourceDialogOpen, setIsSourceDialogOpen] =
+        useState<boolean>(false);
+    const [urlInput, setUrlInput] = useState<string>('');
     const [selectionMenu, setSelectionMenu] = useState<{
         text: string;
         top: number;
@@ -99,12 +105,29 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         hoveredOutlineId,
         setHoveredOutlineId,
     } = usePdfOutline(pdfDocument, currentPage);
-    const hasPdf = Boolean(selectedFile) && numPages > 0;
+    const selectedSource = selectedFile ?? selectedUrl;
+    const selectedSourceLabel = useMemo(() => {
+        if (selectedFile) {
+            return selectedFile.name;
+        }
+        if (!selectedUrl) {
+            return null;
+        }
+        try {
+            const url = new URL(selectedUrl);
+            const pathname = url.pathname.replace(/\/+$/, '');
+            const lastSegment = pathname.split('/').pop();
+            return lastSegment || url.host;
+        } catch {
+            return selectedUrl;
+        }
+    }, [selectedFile, selectedUrl]);
+    const hasPdf = Boolean(selectedSource) && numPages > 0;
     const zoomLabel = `${Math.round((zoom / DEFAULT_ZOOM) * 100)}%`;
     const canZoomIn = hasPdf && zoom < ZOOM_MAX;
     const canZoomOut = hasPdf && zoom > ZOOM_MIN;
     const canResetZoom = hasPdf && zoom !== DEFAULT_ZOOM;
-    const canPrint = Boolean(selectedFile);
+    const canPrint = Boolean(selectedSource);
 
     const updateWidth = useCallback(() => {
         const element = scrollContainerRef.current;
@@ -112,6 +135,39 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
             setContainerWidth(element.clientWidth);
         }
     }, []);
+
+    const resetViewerState = useCallback(() => {
+        setNumPages(0);
+        setPdfDocument(null);
+        setCurrentPage(1);
+        setScrollProgress(0);
+        setHasRenderedPage(false);
+        setHasLoadError(false);
+        setZoom(DEFAULT_ZOOM);
+        setPageSizes({});
+        dragDepthRef.current = 0;
+        setIsDragActive(false);
+    }, []);
+
+    const closeSourceDialog = useCallback(() => {
+        setIsSourceDialogOpen(false);
+        dragDepthRef.current = 0;
+        setIsDragActive(false);
+    }, []);
+
+    const openSourceDialog = useCallback(() => {
+        setIsSourceDialogOpen(true);
+    }, []);
+    const handleSourceDialogOpenChange = useCallback(
+        (isOpen: boolean) => {
+            if (isOpen) {
+                setIsSourceDialogOpen(true);
+            } else {
+                closeSourceDialog();
+            }
+        },
+        [closeSourceDialog],
+    );
 
     // Update container width on resize
     useEffect(() => {
@@ -139,33 +195,45 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         };
     }, [updateWidth]);
 
-    const selectFile = useCallback((files: FileList | File[] | null) => {
-        if (!files || files.length === 0) {
-            return;
-        }
+    const selectFile = useCallback(
+        (files: FileList | File[] | null) => {
+            if (!files || files.length === 0) {
+                return;
+            }
 
-        const pdfFile = Array.from(files).find(
-            (file) =>
-                file.type === 'application/pdf' ||
-                file.name.toLowerCase().endsWith('.pdf'),
-        );
+            const pdfFile = Array.from(files).find(
+                (file) =>
+                    file.type === 'application/pdf' ||
+                    file.name.toLowerCase().endsWith('.pdf'),
+            );
 
-        if (!pdfFile) {
-            return;
-        }
+            if (!pdfFile) {
+                return;
+            }
 
-        setSelectedFile(pdfFile);
-        setNumPages(0);
-        setPdfDocument(null);
-        setCurrentPage(1);
-        setScrollProgress(0);
-        setHasRenderedPage(false);
-        setHasLoadError(false);
-        setZoom(DEFAULT_ZOOM);
-        setPageSizes({});
-        dragDepthRef.current = 0;
-        setIsDragActive(false);
-    }, []);
+            setSelectedFile(pdfFile);
+            setSelectedUrl(null);
+            setUrlInput('');
+            resetViewerState();
+            closeSourceDialog();
+        },
+        [closeSourceDialog, resetViewerState],
+    );
+
+    const selectUrl = useCallback(
+        (value: string) => {
+            const trimmed = value.trim();
+            if (!trimmed) {
+                return;
+            }
+            setSelectedUrl(trimmed);
+            setSelectedFile(null);
+            setUrlInput(trimmed);
+            resetViewerState();
+            closeSourceDialog();
+        },
+        [closeSourceDialog, resetViewerState],
+    );
 
     const handleSelectFile = useCallback(
         (event: ChangeEvent<HTMLInputElement>) => {
@@ -217,27 +285,29 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         setHasLoadError(true);
     }, []);
 
-    const handlePageRenderSuccess = useCallback((page: {
-        pageNumber: number;
-        width: number;
-        height: number;
-    }) => {
-        setHasRenderedPage((prev) => prev || true);
-        setPageSizes((prev) => {
-            const current = prev[page.pageNumber];
-            if (
-                current &&
-                current.width === page.width &&
-                current.height === page.height
-            ) {
-                return prev;
-            }
-            return {
-                ...prev,
-                [page.pageNumber]: { width: page.width, height: page.height },
-            };
-        });
-    }, []);
+    const handlePageRenderSuccess = useCallback(
+        (page: { pageNumber: number; width: number; height: number }) => {
+            setHasRenderedPage((prev) => prev || true);
+            setPageSizes((prev) => {
+                const current = prev[page.pageNumber];
+                if (
+                    current &&
+                    current.width === page.width &&
+                    current.height === page.height
+                ) {
+                    return prev;
+                }
+                return {
+                    ...prev,
+                    [page.pageNumber]: {
+                        width: page.width,
+                        height: page.height,
+                    },
+                };
+            });
+        },
+        [],
+    );
 
     const handleOutlineItemClick = useCallback(
         async ({
@@ -365,7 +435,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
     }, [currentPage]);
 
     const handleSelectionMenu = useCallback(() => {
-        if (!selectedFile || numPages === 0) {
+        if (!selectedSource || numPages === 0) {
             setSelectionMenu(null);
             return;
         }
@@ -413,7 +483,11 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         }
 
         const container = scrollContainerRef.current;
-        if (!container || !anchorElement || !container.contains(anchorElement)) {
+        if (
+            !container ||
+            !anchorElement ||
+            !container.contains(anchorElement)
+        ) {
             setSelectionMenu(null);
             return;
         }
@@ -424,15 +498,14 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
             containerRect.left +
             container.scrollLeft +
             rect.width / 2;
-        const menuTop =
-            rect.top - containerRect.top + container.scrollTop - 12;
+        const menuTop = rect.top - containerRect.top + container.scrollTop - 12;
 
         setSelectionMenu({
             text: selectedText,
             left: menuLeft,
             top: Math.max(menuTop, 8),
         });
-    }, [numPages, selectedFile]);
+    }, [selectedSource, numPages]);
 
     const handleSelectionTranslate = useCallback(() => {
         if (!selectionMenu) {
@@ -455,18 +528,24 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
     }, []);
 
     const handlePrint = useCallback(() => {
-        if (!selectedFile) {
+        if (!selectedFile && !selectedUrl) {
             return;
         }
-        const objectUrl = URL.createObjectURL(selectedFile);
+        const objectUrl = selectedFile
+            ? URL.createObjectURL(selectedFile)
+            : selectedUrl;
         const printWindow = window.open(objectUrl);
         if (!printWindow) {
-            URL.revokeObjectURL(objectUrl);
+            if (selectedFile) {
+                URL.revokeObjectURL(objectUrl);
+            }
             return;
         }
 
         const cleanup = () => {
-            URL.revokeObjectURL(objectUrl);
+            if (selectedFile) {
+                URL.revokeObjectURL(objectUrl);
+            }
         };
 
         printWindow.addEventListener(
@@ -485,14 +564,28 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
             },
             { once: true },
         );
-        setTimeout(cleanup, 60_000);
-    }, [selectedFile]);
+        if (selectedFile) {
+            setTimeout(cleanup, 60_000);
+        }
+    }, [selectedFile, selectedUrl]);
+
+    const handleUrlSubmit = useCallback(
+        (event: FormEvent<HTMLFormElement>) => {
+            event.preventDefault();
+            const trimmed = urlInput.trim();
+            if (!trimmed) {
+                return;
+            }
+            selectUrl(trimmed);
+        },
+        [selectUrl, urlInput],
+    );
 
     useEffect(() => {
-        if (selectedFile) {
+        if (selectedSource) {
             handleScroll();
         }
-    }, [handleScroll, numPages, selectedFile]);
+    }, [handleScroll, selectedSource]);
 
     useEffect(() => {
         const handleSelectionChange = () => {
@@ -569,19 +662,10 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                 </div>
             );
         });
-    }, [
-        containerWidth,
-        handlePageRenderSuccess,
-        numPages,
-        pageSizes,
-        zoom,
-    ]);
+    }, [containerWidth, handlePageRenderSuccess, numPages, pageSizes, zoom]);
 
-    const dropZoneActive = isDragActive
-        ? 'outline outline-2 outline-offset-0 outline-[#1a1a1a] ring-0'
-        : 'outline outline-transparent';
     const isPdfLoading =
-        Boolean(selectedFile) && !hasRenderedPage && !hasLoadError;
+        Boolean(selectedSource) && !hasRenderedPage && !hasLoadError;
 
     return (
         <div
@@ -603,8 +687,8 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
             />
 
             <PdfViewerHeader
-                selectedFileName={selectedFile?.name ?? null}
-                onSelectClick={() => fileInputRef.current?.click()}
+                selectedFileName={selectedSourceLabel}
+                onSelectClick={openSourceDialog}
                 onZoomIn={handleZoomIn}
                 onZoomOut={handleZoomOut}
                 onZoomReset={handleZoomReset}
@@ -624,32 +708,35 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                     style={{ width: `${scrollProgress}%` }}
                 />
             </div>
-
-            {/** biome-ignore lint/a11y/noStaticElementInteractions: PDFドラッグに必要なコンポーネントのため */}
-            <div
-                ref={dropZoneRef}
-                className={cn(
-                    [
-                        'relative flex-1 overflow-hidden',
-                        'bg-[#f5f5f5] transition',
-                        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[#1a1a1a]',
-                    ],
-                    dropZoneActive,
-                )}
+            <PdfSourceDialog
+                isOpen={isSourceDialogOpen}
+                onOpenChange={handleSourceDialogOpenChange}
+                isDragActive={isDragActive}
+                urlInput={urlInput}
                 onDragEnter={handleDragEnter}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
+                onSelectFileClick={() => fileInputRef.current?.click()}
+                onUrlChange={setUrlInput}
+                onUrlSubmit={handleUrlSubmit}
+            />
+
+            <div
+                ref={dropZoneRef}
+                className={cn([
+                    'relative flex-1 overflow-hidden',
+                    'bg-[#f5f5f5] transition',
+                    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-[#1a1a1a]',
+                ])}
                 role="presentation"
             >
-                {selectedFile ? (
+                {selectedSource ? (
                     <Document
-                        file={selectedFile}
+                        file={selectedSource}
                         onLoadSuccess={handleLoadSuccess}
                         onLoadError={handleLoadError}
-                        error={
-                            <Message>PDFの読み込みに失敗しました。</Message>
-                        }
+                        error={<Message>PDFの読み込みに失敗しました。</Message>}
                         options={options}
                         className={cn(['flex h-full w-full'])}
                     >
@@ -667,19 +754,14 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                             }
                         />
 
-                        <main
-                            className={cn(['flex min-w-0 flex-1 flex-col'])}
-                        >
+                        <main className={cn(['flex min-w-0 flex-1 flex-col'])}>
                             <div
                                 ref={scrollContainerRef}
                                 onScroll={handleScroll}
-                                className={cn(
-                                    [
-                                        'relative flex-1 overflow-auto',
-                                        'px-6 pb-10',
-                                    ],
-                                    isDragActive && 'bg-white/60',
-                                )}
+                                className={cn([
+                                    'relative flex-1 overflow-auto',
+                                    'px-6 pb-10',
+                                ])}
                             >
                                 <div
                                     ref={pageAreaRef}
@@ -720,7 +802,8 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                                                     left: `${selectionMenu.left}px`,
                                                     top: `${selectionMenu.top}px`,
                                                     position: 'absolute',
-                                                    transform: 'translateX(-50%)',
+                                                    transform:
+                                                        'translateX(-50%)',
                                                 }}
                                             >
                                                 <button
@@ -775,7 +858,6 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                                 </div>
                             </div>
                         </main>
-
                     </Document>
                 ) : (
                     <div className={cn(['flex h-full'])}>
@@ -794,16 +876,14 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                             }
                         />
 
-                        <main
-                            className={cn(['flex min-w-0 flex-1 flex-col'])}
-                        >
+                        <main className={cn(['flex min-w-0 flex-1 flex-col'])}>
                             <div
                                 ref={scrollContainerRef}
                                 onScroll={handleScroll}
-                                className={cn(
-                                    ['flex-1 overflow-auto', 'px-6 pb-10'],
-                                    isDragActive && 'bg-white/60',
-                                )}
+                                className={cn([
+                                    'flex-1 overflow-auto',
+                                    'px-6 pb-10',
+                                ])}
                             >
                                 <div
                                     ref={pageAreaRef}
@@ -814,14 +894,20 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                                 >
                                     <PdfEmptyState
                                         isDragActive={isDragActive}
-                                        onSelectClick={() =>
+                                        urlInput={urlInput}
+                                        onDragEnter={handleDragEnter}
+                                        onDragOver={handleDragOver}
+                                        onDragLeave={handleDragLeave}
+                                        onDrop={handleDrop}
+                                        onSelectFileClick={() =>
                                             fileInputRef.current?.click()
                                         }
+                                        onUrlChange={setUrlInput}
+                                        onUrlSubmit={handleUrlSubmit}
                                     />
                                 </div>
                             </div>
                         </main>
-
                     </div>
                 )}
             </div>

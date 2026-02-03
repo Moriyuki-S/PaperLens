@@ -46,7 +46,9 @@ export const usePdfOutline = (
     currentPage: number,
 ) => {
     const [outlineItems, setOutlineItems] = useState<OutlineItem[]>([]);
-    const [outlineWithPages, setOutlineWithPages] = useState<OutlineEntry[]>([]);
+    const [outlineWithPages, setOutlineWithPages] = useState<OutlineEntry[]>(
+        [],
+    );
     const [hoveredOutlineId, setHoveredOutlineId] = useState<string | null>(
         null,
     );
@@ -59,7 +61,7 @@ export const usePdfOutline = (
 
         let isActive = true;
 
-        void pdfDocument
+         pdfDocument
             .getOutline()
             .then((outline) => {
                 if (isActive) {

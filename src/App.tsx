@@ -1,5 +1,5 @@
-import { cn } from './lib/utils';
 import { PdfViewer } from './features/pdf-viewer';
+import { cn } from './lib/utils';
 
 function App() {
     return (
