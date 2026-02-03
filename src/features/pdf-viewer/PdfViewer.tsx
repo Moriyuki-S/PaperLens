@@ -19,6 +19,7 @@ import { PdfOutlinePanel } from './components/PdfOutlinePanel';
 import { PdfSourceDialog } from './components/PdfSourceDialog';
 import { PdfViewerHeader } from './components/PdfViewerHeader';
 import { type OutlineEntry, usePdfOutline } from './hooks/usePdfOutline';
+import { buildPdfUrl, normalizePdfUrlInput } from './utils/pdfUrl';
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
     'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -222,13 +223,13 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
 
     const selectUrl = useCallback(
         (value: string) => {
-            const trimmed = value.trim();
-            if (!trimmed) {
+            const normalized = normalizePdfUrlInput(value);
+            if (!normalized) {
                 return;
             }
-            setSelectedUrl(trimmed);
+            setSelectedUrl(buildPdfUrl(normalized));
             setSelectedFile(null);
-            setUrlInput(trimmed);
+            setUrlInput(normalized);
             resetViewerState();
             closeSourceDialog();
         },
@@ -572,14 +573,18 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
     const handleUrlSubmit = useCallback(
         (event: FormEvent<HTMLFormElement>) => {
             event.preventDefault();
-            const trimmed = urlInput.trim();
-            if (!trimmed) {
+            const normalized = normalizePdfUrlInput(urlInput);
+            if (!normalized) {
                 return;
             }
-            selectUrl(trimmed);
+            selectUrl(normalized);
         },
         [selectUrl, urlInput],
     );
+
+    const handleUrlChange = useCallback((value: string) => {
+        setUrlInput(normalizePdfUrlInput(value));
+    }, []);
 
     useEffect(() => {
         if (selectedSource) {
@@ -718,7 +723,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onSelectFileClick={() => fileInputRef.current?.click()}
-                onUrlChange={setUrlInput}
+                onUrlChange={handleUrlChange}
                 onUrlSubmit={handleUrlSubmit}
             />
 
@@ -902,7 +907,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                                         onSelectFileClick={() =>
                                             fileInputRef.current?.click()
                                         }
-                                        onUrlChange={setUrlInput}
+                                        onUrlChange={handleUrlChange}
                                         onUrlSubmit={handleUrlSubmit}
                                     />
                                 </div>

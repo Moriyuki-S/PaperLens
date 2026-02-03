@@ -12,7 +12,7 @@ interface PdfEmptyStateProps {
     onSelectFileClick: () => void;
     onUrlChange: (value: string) => void;
     onUrlSubmit: (event: FormEvent<HTMLFormElement>) => void;
-};
+}
 
 export const PdfEmptyState = ({
     isDragActive,

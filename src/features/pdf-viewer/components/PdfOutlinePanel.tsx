@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -31,6 +31,7 @@ export const PdfOutlinePanel = ({
     onItemClick,
     onToggle,
 }: PdfOutlinePanelProps) => {
+    const outlineRef = useRef<HTMLElement | null>(null);
     const renderOutlineItems = useCallback(
         (items: OutlineEntry[], depth = 0) => {
             if (items.length === 0) {
@@ -49,6 +50,7 @@ export const PdfOutlinePanel = ({
                             <li key={item.id} className={cn(['ml-1'])}>
                                 <button
                                     type="button"
+                                    data-outline-id={item.id}
                                     onClick={() => {
                                         if (isDisabled) {
                                             return;
@@ -107,10 +109,36 @@ export const PdfOutlinePanel = ({
         ],
     );
 
+    useEffect(() => {
+        if (!activeOutlineId || isCollapsed) {
+            return;
+        }
+
+        const container = outlineRef.current;
+        if (!container) {
+            return;
+        }
+
+        const activeItem = container.querySelector(
+            `[data-outline-id="${activeOutlineId}"]`,
+        ) as HTMLElement | null;
+
+        if (!activeItem) {
+            return;
+        }
+
+        activeItem.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'nearest',
+        });
+    }, [activeOutlineId, isCollapsed]);
+
     return (
         <aside
+            ref={outlineRef}
             className={cn([
-                'relative flex shrink-0 flex-col',
+                'relative flex shrink-0 min-h-0 flex-col',
                 'transition-[width] duration-300 ease-out',
                 isCollapsed ? 'w-12' : 'w-64',
                 'border-r border-[#e5e5e5] bg-[#f5f5f5]',
@@ -154,7 +182,9 @@ export const PdfOutlinePanel = ({
             </div>
             <ScrollArea
                 className={cn(
-                    ['flex-1 transition-all duration-200'],
+                    [
+                        'flex-1 min-h-0 overflow-scroll transition-all duration-200',
+                    ],
                     isCollapsed
                         ? 'pointer-events-none -translate-x-2 opacity-0'
                         : 'translate-x-0 opacity-100',

@@ -108,19 +108,12 @@ export const PdfSourceInput = ({
                 >
                     <Input
                         id={id}
-                        type="url"
+                        type="text"
                         label="PDF URL"
                         startContent={
                             <div className="pointer-events-none flex items-center">
                                 <span className="text-default-400 text-small">
                                     https://
-                                </span>
-                            </div>
-                        }
-                        endContent={
-                            <div className="pointer-events-none flex items-center">
-                                <span className="text-default-400 text-small">
-                                    .pdf/
                                 </span>
                             </div>
                         }

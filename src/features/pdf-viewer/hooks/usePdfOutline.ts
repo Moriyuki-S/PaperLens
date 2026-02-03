@@ -61,7 +61,7 @@ export const usePdfOutline = (
 
         let isActive = true;
 
-         pdfDocument
+        pdfDocument
             .getOutline()
             .then((outline) => {
                 if (isActive) {
