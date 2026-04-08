@@ -26,38 +26,51 @@ export const PdfEmptyState = ({
     onUrlSubmit,
 }: PdfEmptyStateProps) => {
     return (
-        <div
-            className={cn([
-                'relative w-full',
-                'rounded-2xl px-6 py-10',
-                'bg-white/40',
-            ])}
-        >
+        <div className={cn(['relative w-full max-w-3xl'])}>
             <div
                 className={cn([
-                    'pointer-events-none absolute inset-0 rounded-2xl',
-                    'border-2 border-dashed',
-                    'border-[#1a1a1a]/30',
-                ])}
-            />
-            <div
-                className={cn([
-                    'pointer-events-none absolute inset-2 rounded-xl',
+                    'pointer-events-none absolute left-1/2 top-0',
+                    'h-40 w-40 -translate-x-1/2 rounded-full',
                     'bg-[#1a1a1a]/5',
-                    'transition-opacity',
-                    isDragActive ? 'opacity-100' : 'opacity-0',
+                    'blur-3xl transition-opacity',
+                    isDragActive ? 'opacity-100' : 'opacity-70',
                 ])}
             />
             <div
                 className={cn([
-                    'relative z-10',
-                    'flex min-h-[60vh] flex-col items-center justify-center',
-                    'gap-6',
+                    'relative z-10 overflow-hidden rounded-[32px] border border-white/70',
+                    'bg-white/90 px-6 py-8 shadow-[0_24px_80px_rgba(15,23,42,0.12)] backdrop-blur',
+                    'sm:px-10 sm:py-10',
                 ])}
             >
+                <div
+                    className={cn([
+                        'mx-auto flex max-w-xl flex-col items-center text-center',
+                        'gap-3',
+                    ])}
+                >
+                    <span
+                        className={cn([
+                            'text-[11px] font-semibold uppercase tracking-[0.24em]',
+                            'text-[#6b7280]',
+                        ])}
+                    >
+                        PaperLens
+                    </span>
+                    <h2
+                        className={cn([
+                            'text-2xl font-semibold text-[#1a1a1a]',
+                        ])}
+                    >
+                        Start by selecting a PDF
+                    </h2>
+                    <p className={cn(['text-sm leading-6 text-[#6b7280]'])}>
+                        Upload a local file or paste a PDF URL to open it.
+                    </p>
+                </div>
                 <PdfSourceInput
                     variant="empty"
-                    className={cn(['w-full max-w-xl'])}
+                    className={cn(['mx-auto mt-8 w-full max-w-xl'])}
                     isDragActive={isDragActive}
                     urlInput={urlInput}
                     onDragEnter={onDragEnter}

@@ -41,42 +41,62 @@ export const PdfSourceInput = ({
     return (
         <div
             className={cn(
-                ['flex flex-col', isDialog ? 'gap-4' : ''],
+                ['flex flex-col', isDialog ? 'gap-4' : 'gap-6'],
                 className,
             )}
         >
             {/** biome-ignore lint/a11y/noStaticElementInteractions: <> */}
             <div
                 className={cn(
-                    [
-                        'w-full',
-                        'rounded-2xl border-2 border-dashed',
-                        'px-6 py-8 text-center transition',
-                    ],
-                    isDragActive
-                        ? 'border-[#1a1a1a] bg-[#1a1a1a]/5'
-                        : 'border-[#1a1a1a]/30 bg-[#f8f8f8]',
+                    ['w-full px-6 text-center transition'],
+                    isEmpty
+                        ? [
+                              'rounded-3xl border border-dashed py-10',
+                              isDragActive
+                                  ? 'border-[#1a1a1a]/50 bg-[#1a1a1a]/5'
+                                  : 'border-[#1a1a1a]/20 bg-[#f8f8f8]',
+                          ]
+                        : [
+                              'rounded-2xl border-2 border-dashed py-8',
+                              isDragActive
+                                  ? 'border-[#1a1a1a] bg-[#1a1a1a]/5'
+                                  : 'border-[#1a1a1a]/30 bg-[#f8f8f8]',
+                          ],
                 )}
                 onDragEnter={onDragEnter}
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
                 onDrop={onDrop}
             >
-                <div className={cn(['flex flex-col items-center', 'gap-3'])}>
+                <div
+                    className={cn([
+                        'flex flex-col items-center',
+                        isEmpty ? 'gap-4' : 'gap-3',
+                    ])}
+                >
                     <div
                         className={cn([
-                            'flex h-12 w-12 items-center justify-center',
-                            'rounded-full bg-[#1a1a1a]/10',
+                            'flex items-center justify-center rounded-full',
+                            isEmpty ? 'h-14 w-14' : 'h-12 w-12',
+                            'bg-[#1a1a1a]/10',
                         ])}
                     >
                         <LuCloudUpload
-                            className={cn(['h-6 w-6 text-[#1a1a1a]'])}
+                            className={cn([
+                                'text-[#1a1a1a]',
+                                isEmpty ? 'h-7 w-7' : 'h-6 w-6',
+                            ])}
                         />
                     </div>
-                    <p className={cn(['text-sm font-semibold text-[#1a1a1a]'])}>
-                        ここにPDFをドロップ
+                    <p
+                        className={cn([
+                            'font-semibold text-[#1a1a1a]',
+                            isEmpty ? 'text-base' : 'text-sm',
+                        ])}
+                    >
+                        Drop your PDF here
                     </p>
-                    <p className={cn(['text-xs text-[#6b7280]'])}>または</p>
+                    <p className={cn(['text-xs text-[#6b7280]'])}>or</p>
                     <Button
                         type="button"
                         onPress={onSelectFileClick}
@@ -88,18 +108,18 @@ export const PdfSourceInput = ({
                         ])}
                     >
                         <LuFileUp className={cn(['h-4 w-4'])} />
-                        ファイルを選択
+                        Choose file
                     </Button>
                     {isEmpty ? (
                         <p className={cn(['text-xs text-[#6b7280]'])}>
-                            対応形式: PDFファイル (.pdf)
+                            Supported format: PDF (.pdf)
                         </p>
                     ) : null}
                 </div>
             </div>
             <form
                 onSubmit={onUrlSubmit}
-                className={cn(['mt-6 flex flex-col gap-2'])}
+                className={cn(['flex flex-col gap-2'])}
             >
                 <div
                     className={cn([
@@ -130,7 +150,7 @@ export const PdfSourceInput = ({
                         className={cn(['bg-black', 'text-white'])}
                         disabled={!urlInput.trim()}
                     >
-                        表示
+                        Open
                     </Button>
                 </div>
             </form>
