@@ -57,7 +57,11 @@ export const PdfEmptyState = ({
                     >
                         PaperLens
                     </span>
-                    <h2 className={cn(['text-2xl font-semibold text-[#1a1a1a]'])}>
+                    <h2
+                        className={cn([
+                            'text-2xl font-semibold text-[#1a1a1a]',
+                        ])}
+                    >
                         Start by selecting a PDF
                     </h2>
                     <p className={cn(['text-sm leading-6 text-[#6b7280]'])}>

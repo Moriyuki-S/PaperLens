@@ -615,13 +615,17 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                 <div
                     className={cn([
                         'overflow-hidden transition-[max-height,opacity] duration-300 ease-out',
-                        isHeaderVisible ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0',
+                        isHeaderVisible
+                            ? 'max-h-20 opacity-100'
+                            : 'max-h-0 opacity-0',
                     ])}
                 >
                     <div
                         className={cn([
                             'transition-transform duration-300 ease-out',
-                            isHeaderVisible ? 'translate-y-0' : '-translate-y-full',
+                            isHeaderVisible
+                                ? 'translate-y-0'
+                                : '-translate-y-full',
                         ])}
                     >
                         <PdfViewerHeader

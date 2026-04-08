@@ -86,9 +86,7 @@ export const PdfViewerHeader = ({
                     {selectedFileName ?? 'PDF未選択'}
                 </span>
             </div>
-            <h1 className={cn(['text-base', 'font-semibold'])}>
-                PaperLens
-            </h1>
+            <h1 className={cn(['text-base', 'font-semibold'])}>PaperLens</h1>
             <div className={cn(['flex items-center', 'gap-2'])}>
                 <ButtonGroup
                     className={cn([
