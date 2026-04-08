@@ -87,7 +87,7 @@ export const PdfViewerHeader = ({
                 </span>
             </div>
             <h1 className={cn(['text-base', 'font-semibold'])}>
-                PaperLens PDF
+                PaperLens
             </h1>
             <div className={cn(['flex items-center', 'gap-2'])}>
                 <ButtonGroup

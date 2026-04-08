@@ -75,6 +75,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
     const scrollContainerRef = useRef<HTMLDivElement | null>(null);
     const pageAreaRef = useRef<HTMLDivElement | null>(null);
     const dragDepthRef = useRef(0);
+    const lastScrollTopRef = useRef(0);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [selectedUrl, setSelectedUrl] = useState<string | null>(null);
     const [pdfDocument, setPdfDocument] = useState<PDFDocumentProxy | null>(
@@ -85,6 +86,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
     const [isDragActive, setIsDragActive] = useState<boolean>(false);
     const [scrollProgress, setScrollProgress] = useState<number>(0);
     const [currentPage, setCurrentPage] = useState<number>(1);
+    const [isHeaderVisible, setIsHeaderVisible] = useState<boolean>(true);
     const [hasRenderedPage, setHasRenderedPage] = useState<boolean>(false);
     const [hasLoadError, setHasLoadError] = useState<boolean>(false);
     const [isOutlineCollapsed, setIsOutlineCollapsed] =
@@ -142,7 +144,9 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         setZoom(DEFAULT_ZOOM);
         setPageSizes({});
         dragDepthRef.current = 0;
+        lastScrollTopRef.current = 0;
         setIsDragActive(false);
+        setIsHeaderVisible(true);
     }, []);
 
     const closeSourceDialog = useCallback(() => {
@@ -401,10 +405,20 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
             return;
         }
 
+        const scrollTop = container.scrollTop;
+        const delta = scrollTop - lastScrollTopRef.current;
         const maxScroll = container.scrollHeight - container.clientHeight;
-        const progress =
-            maxScroll > 0 ? (container.scrollTop / maxScroll) * 100 : 0;
+        const progress = maxScroll > 0 ? (scrollTop / maxScroll) * 100 : 0;
         setScrollProgress(progress);
+
+        if (scrollTop <= 8) {
+            setIsHeaderVisible(true);
+        } else if (delta > 8) {
+            setIsHeaderVisible(false);
+        } else if (delta < -8) {
+            setIsHeaderVisible(true);
+        }
+        lastScrollTopRef.current = scrollTop;
 
         const pageElements = Array.from(
             container.querySelectorAll('[data-page-wrapper]'),
@@ -413,7 +427,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
             return;
         }
 
-        const anchor = container.scrollTop + container.clientHeight * 0.2;
+        const anchor = scrollTop + container.clientHeight * 0.2;
         let pageNumber = currentPage;
         for (const pageElement of pageElements) {
             if (pageElement.offsetTop + pageElement.offsetHeight >= anchor) {
@@ -449,6 +463,9 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         const objectUrl = selectedFile
             ? URL.createObjectURL(selectedFile)
             : selectedUrl;
+        if (!objectUrl) {
+            return;
+        }
         const printWindow = window.open(objectUrl);
         if (!printWindow) {
             if (selectedFile) {
@@ -501,9 +518,12 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
     }, []);
 
     useEffect(() => {
-        if (selectedSource) {
-            handleScroll();
+        if (!selectedSource) {
+            lastScrollTopRef.current = 0;
+            setIsHeaderVisible(true);
+            return;
         }
+        handleScroll();
     }, [handleScroll, selectedSource]);
 
     const pages = useMemo(() => {
@@ -591,28 +611,44 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                 className={cn(['hidden'])}
             />
 
-            <PdfViewerHeader
-                selectedFileName={selectedSourceLabel}
-                onSelectClick={openSourceDialog}
-                onZoomIn={handleZoomIn}
-                onZoomOut={handleZoomOut}
-                onZoomReset={handleZoomReset}
-                zoomLabel={zoomLabel}
-                canZoomIn={canZoomIn}
-                canZoomOut={canZoomOut}
-                canResetZoom={canResetZoom}
-                onPrint={handlePrint}
-                canPrint={canPrint}
-            />
-            <div className={cn(['h-0.5 w-full', 'bg-[#e5e5e5]'])}>
+            {hasPdf ? (
                 <div
                     className={cn([
-                        'h-full bg-[#1a1a1a]',
-                        'transition-[width] duration-300',
+                        'overflow-hidden transition-[max-height,opacity] duration-300 ease-out',
+                        isHeaderVisible ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0',
                     ])}
-                    style={{ width: `${scrollProgress}%` }}
-                />
-            </div>
+                >
+                    <div
+                        className={cn([
+                            'transition-transform duration-300 ease-out',
+                            isHeaderVisible ? 'translate-y-0' : '-translate-y-full',
+                        ])}
+                    >
+                        <PdfViewerHeader
+                            selectedFileName={selectedSourceLabel}
+                            onSelectClick={openSourceDialog}
+                            onZoomIn={handleZoomIn}
+                            onZoomOut={handleZoomOut}
+                            onZoomReset={handleZoomReset}
+                            zoomLabel={zoomLabel}
+                            canZoomIn={canZoomIn}
+                            canZoomOut={canZoomOut}
+                            canResetZoom={canResetZoom}
+                            onPrint={handlePrint}
+                            canPrint={canPrint}
+                        />
+                        <div className={cn(['h-0.5 w-full', 'bg-[#e5e5e5]'])}>
+                            <div
+                                className={cn([
+                                    'h-full bg-[#1a1a1a]',
+                                    'transition-[width] duration-300',
+                                ])}
+                                style={{ width: `${scrollProgress}%` }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            ) : null}
             <PdfSourceDialog
                 isOpen={isSourceDialogOpen}
                 onOpenChange={handleSourceDialogOpenChange}
@@ -726,55 +762,28 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                         </main>
                     </Document>
                 ) : (
-                    <div className={cn(['flex h-full'])}>
-                        <PdfOutlinePanel
-                            numPages={numPages}
-                            outlineItems={outlineWithPages}
-                            activeOutlineId={activeOutlineId}
-                            activeOutlineIds={activeOutlineIds}
-                            hoveredOutlineId={hoveredOutlineId}
-                            isCollapsed={isOutlineCollapsed}
-                            emptyMessage="目次はPDF読み込み後に表示されます。"
-                            onHoverChange={setHoveredOutlineId}
-                            onItemClick={handleOutlineEntryClick}
-                            onToggle={() =>
-                                setIsOutlineCollapsed((prev) => !prev)
+                    <main
+                        ref={scrollContainerRef}
+                        className={cn([
+                            'relative flex h-full min-w-0 flex-1 items-center justify-center overflow-auto',
+                            'px-6 py-10 sm:px-10',
+                            'bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.95)_0%,_rgba(245,245,245,1)_45%,_rgba(235,235,235,1)_100%)]',
+                        ])}
+                    >
+                        <PdfEmptyState
+                            isDragActive={isDragActive}
+                            urlInput={urlInput}
+                            onDragEnter={handleDragEnter}
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                            onSelectFileClick={() =>
+                                fileInputRef.current?.click()
                             }
+                            onUrlChange={handleUrlChange}
+                            onUrlSubmit={handleUrlSubmit}
                         />
-
-                        <main className={cn(['flex min-w-0 flex-1 flex-col'])}>
-                            <div
-                                ref={scrollContainerRef}
-                                onScroll={handleScroll}
-                                className={cn([
-                                    'flex-1 overflow-auto',
-                                    'px-6 pb-10',
-                                ])}
-                            >
-                                <div
-                                    ref={pageAreaRef}
-                                    className={cn([
-                                        'mx-auto w-full',
-                                        'max-w-5xl',
-                                    ])}
-                                >
-                                    <PdfEmptyState
-                                        isDragActive={isDragActive}
-                                        urlInput={urlInput}
-                                        onDragEnter={handleDragEnter}
-                                        onDragOver={handleDragOver}
-                                        onDragLeave={handleDragLeave}
-                                        onDrop={handleDrop}
-                                        onSelectFileClick={() =>
-                                            fileInputRef.current?.click()
-                                        }
-                                        onUrlChange={handleUrlChange}
-                                        onUrlSubmit={handleUrlSubmit}
-                                    />
-                                </div>
-                            </div>
-                        </main>
-                    </div>
+                    </main>
                 )}
             </div>
         </div>
