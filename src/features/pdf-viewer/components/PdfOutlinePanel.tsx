@@ -6,6 +6,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '../../../lib/utils';
 import type { OutlineEntry } from '../hooks/usePdfOutline';
 
+export const PDF_OUTLINE_COLLAPSED_WIDTH = 48;
+export const PDF_OUTLINE_EXPANDED_WIDTH = 256;
+
 interface PdfOutlinePanelProps {
     numPages: number;
     outlineItems: OutlineEntry[];
@@ -26,7 +29,7 @@ export const PdfOutlinePanel = ({
     activeOutlineIds,
     hoveredOutlineId,
     isCollapsed,
-    emptyMessage = '目次はありません。',
+    emptyMessage = 'No outline available.',
     onHoverChange,
     onItemClick,
     onToggle,
@@ -69,7 +72,7 @@ export const PdfOutlinePanel = ({
                                         [
                                             'block w-full rounded-md px-3 py-2',
                                             'text-left text-sm',
-                                            'transition-all duration-200',
+                                            'transition-colors duration-200',
                                         ],
                                         isActive
                                             ? [
@@ -84,7 +87,6 @@ export const PdfOutlinePanel = ({
                                             : [
                                                   'hover:bg-white',
                                                   'hover:text-[#1a1a1a]',
-                                                  'hover:translate-x-1',
                                               ],
                                     )}
                                     style={{
@@ -138,16 +140,20 @@ export const PdfOutlinePanel = ({
         <aside
             ref={outlineRef}
             className={cn([
-                'relative flex shrink-0 min-h-0 flex-col',
+                'relative flex shrink-0 min-h-0 flex-col overflow-hidden',
                 'transition-[width] duration-300 ease-out',
-                isCollapsed ? 'w-12' : 'w-64',
                 'border-r border-[#e5e5e5] bg-[#f5f5f5]',
             ])}
+            style={{
+                width: isCollapsed
+                    ? PDF_OUTLINE_COLLAPSED_WIDTH
+                    : PDF_OUTLINE_EXPANDED_WIDTH,
+            }}
         >
             <button
                 type="button"
                 onClick={onToggle}
-                aria-label={isCollapsed ? '目次を開く' : '目次を閉じる'}
+                aria-label={isCollapsed ? 'Open outline' : 'Close outline'}
                 aria-expanded={!isCollapsed}
                 className={cn([
                     'absolute right-2 top-2 z-10',
@@ -168,26 +174,22 @@ export const PdfOutlinePanel = ({
                 className={cn([
                     'flex items-center justify-between',
                     'border-b border-[#e5e5e5]',
-                    'px-4 py-3 pr-12 transition-all duration-200',
-                    isCollapsed
-                        ? 'pointer-events-none -translate-x-2 opacity-0'
-                        : 'translate-x-0 opacity-100',
+                    'px-4 py-3 pr-12 transition-opacity duration-200',
+                    isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100',
                 ])}
                 aria-hidden={isCollapsed}
             >
-                <h2 className={cn(['text-sm', 'font-semibold'])}>目次</h2>
+                <h2 className={cn(['text-sm', 'font-semibold'])}>Outline</h2>
                 <span className={cn(['text-xs', 'text-[#6b7280]'])}>
-                    {numPages ? `${numPages}ページ` : ''}
+                    {numPages ? `${numPages} pages` : ''}
                 </span>
             </div>
             <ScrollArea
                 className={cn(
                     [
-                        'flex-1 min-h-0 overflow-scroll transition-all duration-200',
+                        'flex-1 min-h-0 overflow-scroll transition-opacity duration-200',
                     ],
-                    isCollapsed
-                        ? 'pointer-events-none -translate-x-2 opacity-0'
-                        : 'translate-x-0 opacity-100',
+                    isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100',
                 )}
                 aria-hidden={isCollapsed}
             >

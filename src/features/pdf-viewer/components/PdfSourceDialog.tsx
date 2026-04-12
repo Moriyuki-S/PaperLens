@@ -62,7 +62,7 @@ export const PdfSourceDialog = ({
                                 id={headerId}
                                 className={cn(['text-base font-semibold'])}
                             >
-                                PDFを変更
+                                Change PDF
                             </h2>
                             <Button
                                 onPress={close}
@@ -74,7 +74,7 @@ export const PdfSourceDialog = ({
                                 ])}
                                 variant="bordered"
                             >
-                                閉じる
+                                Close
                             </Button>
                         </ModalHeader>
                         <ModalBody className={cn(['mt-4 p-0'])}>
