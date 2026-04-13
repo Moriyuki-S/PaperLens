@@ -20,7 +20,8 @@ What actually happened.
 
 ## Environment
 - OS: 
-- Version: 
+- OS Version: 
+- App Version: 
 
 ## Additional Context
 Add any other context or screenshots here.
