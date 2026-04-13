@@ -175,7 +175,9 @@ export const PdfOutlinePanel = ({
                     'flex items-center justify-between',
                     'border-b border-[#e5e5e5]',
                     'px-4 py-3 pr-12 transition-opacity duration-200',
-                    isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100',
+                    isCollapsed
+                        ? 'pointer-events-none opacity-0'
+                        : 'opacity-100',
                 ])}
                 aria-hidden={isCollapsed}
             >
@@ -189,7 +191,9 @@ export const PdfOutlinePanel = ({
                     [
                         'flex-1 min-h-0 overflow-scroll transition-opacity duration-200',
                     ],
-                    isCollapsed ? 'pointer-events-none opacity-0' : 'opacity-100',
+                    isCollapsed
+                        ? 'pointer-events-none opacity-0'
+                        : 'opacity-100',
                 )}
                 aria-hidden={isCollapsed}
             >

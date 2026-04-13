@@ -17,8 +17,8 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { cn } from '../../lib/utils';
 import { PdfEmptyState } from './components/PdfEmptyState';
 import {
-    PdfOutlinePanel,
     PDF_OUTLINE_COLLAPSED_WIDTH,
+    PdfOutlinePanel,
 } from './components/PdfOutlinePanel';
 import { PdfSourceDialog } from './components/PdfSourceDialog';
 import { PdfViewerHeader } from './components/PdfViewerHeader';
@@ -197,7 +197,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         return () => {
             observer.disconnect();
         };
-    }, [isOutlineCollapsed, selectedSource, updateWidth]);
+    }, [updateWidth]);
 
     const selectFile = useCallback(
         (files: FileList | File[] | null) => {
