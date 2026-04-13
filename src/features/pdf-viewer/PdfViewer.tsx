@@ -11,11 +11,15 @@ import {
     useRef,
     useState,
 } from 'react';
+import { LuChevronDown } from 'react-icons/lu';
 import { Document, Page, pdfjs } from 'react-pdf';
 
 import { cn } from '../../lib/utils';
 import { PdfEmptyState } from './components/PdfEmptyState';
-import { PdfOutlinePanel } from './components/PdfOutlinePanel';
+import {
+    PDF_OUTLINE_COLLAPSED_WIDTH,
+    PdfOutlinePanel,
+} from './components/PdfOutlinePanel';
 import { PdfSourceDialog } from './components/PdfSourceDialog';
 import { PdfViewerHeader } from './components/PdfViewerHeader';
 import { type OutlineEntry, usePdfOutline } from './hooks/usePdfOutline';
@@ -169,10 +173,10 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         [closeSourceDialog],
     );
 
-    // Update container width on resize
+    // Keep page sizing in sync with the scroll area when the outline rail changes width.
     useEffect(() => {
         updateWidth();
-        const element = dropZoneRef.current;
+        const element = scrollContainerRef.current;
         if (!element) {
             return;
         }
@@ -378,7 +382,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                     }
                 }
             } catch (error) {
-                //FIXME: エラーハンドリング
+                // FIXME: error handling
                 console.error('Failed to navigate to outline item:', error);
             }
         },
@@ -406,18 +410,9 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         }
 
         const scrollTop = container.scrollTop;
-        const delta = scrollTop - lastScrollTopRef.current;
         const maxScroll = container.scrollHeight - container.clientHeight;
         const progress = maxScroll > 0 ? (scrollTop / maxScroll) * 100 : 0;
         setScrollProgress(progress);
-
-        if (scrollTop <= 8) {
-            setIsHeaderVisible(true);
-        } else if (delta > 8) {
-            setIsHeaderVisible(false);
-        } else if (delta < -8) {
-            setIsHeaderVisible(true);
-        }
         lastScrollTopRef.current = scrollTop;
 
         const pageElements = Array.from(
@@ -517,6 +512,10 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
         setUrlInput(normalizePdfUrlInput(value));
     }, []);
 
+    const toggleHeaderVisibility = useCallback(() => {
+        setIsHeaderVisible((prev) => !prev);
+    }, []);
+
     useEffect(() => {
         if (!selectedSource) {
             lastScrollTopRef.current = 0;
@@ -591,6 +590,9 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
 
     const isPdfLoading =
         Boolean(selectedSource) && !hasRenderedPage && !hasLoadError;
+    const outlineRailOffset = isOutlineCollapsed
+        ? PDF_OUTLINE_COLLAPSED_WIDTH / 2
+        : 0;
 
     return (
         <div
@@ -631,6 +633,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                         <PdfViewerHeader
                             selectedFileName={selectedSourceLabel}
                             onSelectClick={openSourceDialog}
+                            onToggleVisibility={toggleHeaderVisibility}
                             onZoomIn={handleZoomIn}
                             onZoomOut={handleZoomOut}
                             onZoomReset={handleZoomReset}
@@ -676,12 +679,31 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                 ])}
                 role="presentation"
             >
+                {hasPdf && !isHeaderVisible ? (
+                    <button
+                        type="button"
+                        onClick={toggleHeaderVisibility}
+                        aria-label="Show header"
+                        aria-expanded={isHeaderVisible}
+                        className={cn([
+                            'absolute right-4 top-4 z-20',
+                            'flex h-10 w-10 items-center justify-center',
+                            'rounded-xl border border-[#dcdcdc] bg-white text-[#1a1a1a]',
+                            'shadow-[0_8px_24px_rgba(15,23,42,0.08)] transition',
+                            'hover:bg-[#fafafa]',
+                            'focus-visible:outline focus-visible:outline-2',
+                            'focus-visible:outline-offset-2 focus-visible:outline-[#1a1a1a]',
+                        ])}
+                    >
+                        <LuChevronDown className={cn(['h-4 w-4'])} />
+                    </button>
+                ) : null}
                 {selectedSource ? (
                     <Document
                         file={selectedSource}
                         onLoadSuccess={handleLoadSuccess}
                         onLoadError={handleLoadError}
-                        error={<Message>PDFの読み込みに失敗しました。</Message>}
+                        error={<Message>Failed to load the PDF.</Message>}
                         options={options}
                         className={cn(['flex h-full w-full'])}
                     >
@@ -711,7 +733,7 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                                 <div
                                     ref={pageAreaRef}
                                     className={cn([
-                                        'mx-auto w-full',
+                                        'mx-auto w-full transition-transform duration-300 ease-out',
                                         zoom > 1 ? 'max-w-none' : 'max-w-5xl',
                                     ])}
                                     style={{
@@ -726,6 +748,9 @@ export const PdfViewer = ({ className = '' }: PdfViewerProps) => {
                                                       ) * zoom,
                                                   )}px`
                                                 : undefined,
+                                        transform: outlineRailOffset
+                                            ? `translateX(-${outlineRailOffset}px)`
+                                            : undefined,
                                     }}
                                 >
                                     {numPages === 0 ? (
