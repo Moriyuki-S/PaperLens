@@ -2,8 +2,8 @@ import { Modal, ModalBody, ModalContent, ModalHeader } from '@heroui/modal';
 import { Button } from '@heroui/react';
 import { type DragEvent, type FormEvent, useId } from 'react';
 
-import { cn } from '../../../lib/utils';
-import { PdfSourceInput } from './PdfSourceInput';
+import { cn } from '../../../../lib/utils';
+import { PdfSourceInput } from '../PdfSourceInput';
 
 interface PdfSourceDialogProps {
     isOpen: boolean;

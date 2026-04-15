@@ -3,8 +3,8 @@ import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-import { cn } from '../../../lib/utils';
-import type { OutlineEntry } from '../hooks/usePdfOutline';
+import { cn } from '../../../../lib/utils';
+import type { OutlineEntry } from '../../hooks/usePdfOutline';
 
 export const PDF_OUTLINE_COLLAPSED_WIDTH = 48;
 export const PDF_OUTLINE_EXPANDED_WIDTH = 256;

@@ -1,6 +1,6 @@
 import type { DragEvent, FormEvent } from 'react';
-import { cn } from '../../../lib/utils';
-import { PdfSourceInput } from './PdfSourceInput';
+import { cn } from '../../../../lib/utils';
+import { PdfSourceInput } from '../PdfSourceInput';
 
 interface PdfEmptyStateProps {
     isDragActive: boolean;
