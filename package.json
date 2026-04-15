@@ -15,7 +15,9 @@
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:unit": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest --watch"
+    "test:watch": "vitest --watch",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
     "@heroui/button": "^2.2.27",
@@ -38,6 +40,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.6",
+    "@playwright/test": "^1.59.1",
     "@tauri-apps/cli": "^2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

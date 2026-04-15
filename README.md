@@ -33,3 +33,13 @@ bun run test:unit
 ```
 
 Shared test setup lives in `src/tests/setup.ts`.
+
+## Playwright Tests
+
+Run the browser end-to-end tests with:
+
+```bash
+bun run test:e2e
+```
+
+The Playwright smoke tests live under `e2e/` and use `playwright.config.ts` to start a local Vite server automatically.
