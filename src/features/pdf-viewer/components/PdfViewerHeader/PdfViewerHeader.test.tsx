@@ -57,7 +57,9 @@ describe('PdfViewerHeader', () => {
 
         expect(screen.getByText('No PDF selected')).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Zoom out' })).toBeDisabled();
-        expect(screen.getByRole('button', { name: 'Reset zoom' })).toBeDisabled();
+        expect(
+            screen.getByRole('button', { name: 'Reset zoom' }),
+        ).toBeDisabled();
         expect(screen.getByRole('button', { name: 'Zoom in' })).toBeDisabled();
         expect(screen.getByRole('button', { name: 'Print' })).toBeDisabled();
     });

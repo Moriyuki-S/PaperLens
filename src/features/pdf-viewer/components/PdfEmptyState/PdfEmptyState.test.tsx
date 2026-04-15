@@ -29,9 +29,13 @@ describe('PdfEmptyState', () => {
             screen.getByRole('heading', { name: 'Start by selecting a PDF' }),
         ).toBeInTheDocument();
         expect(
-            screen.getByText('Upload a local file or paste a PDF URL to open it.'),
+            screen.getByText(
+                'Upload a local file or paste a PDF URL to open it.',
+            ),
         ).toBeInTheDocument();
-        expect(screen.getByDisplayValue('example.com/sample.pdf')).toBeInTheDocument();
+        expect(
+            screen.getByDisplayValue('example.com/sample.pdf'),
+        ).toBeInTheDocument();
 
         await user.click(screen.getByRole('button', { name: 'Choose file' }));
 

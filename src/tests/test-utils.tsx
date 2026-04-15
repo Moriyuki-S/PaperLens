@@ -1,7 +1,7 @@
 import { HeroUIProvider } from '@heroui/react';
 import {
-    render as rtlRender,
     type RenderOptions,
+    render as rtlRender,
 } from '@testing-library/react';
 import type { PropsWithChildren, ReactElement } from 'react';
 
