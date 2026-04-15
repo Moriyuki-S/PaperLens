@@ -1,4 +1,4 @@
-name: CI / Biome
+name: CI
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   biome:
-    name: CI / Biome
+    name: Biome
     runs-on: ubuntu-latest
 
     steps:

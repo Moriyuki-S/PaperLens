@@ -1,4 +1,4 @@
-name: CI / Frontend Unit
+name: CI
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   frontend-unit:
-    name: CI / Frontend Unit
+    name: Frontend Unit
     runs-on: ubuntu-latest
 
     steps:

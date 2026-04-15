@@ -1,4 +1,4 @@
-name: CI / Rust Tests
+name: CI
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   rust-tests:
-    name: CI / Rust Tests
+    name: Rust Tests
     runs-on: ubuntu-latest
 
     steps:

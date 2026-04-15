@@ -1,4 +1,4 @@
-name: CI / Frontend Coverage
+name: CI
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   frontend-coverage:
-    name: CI / Frontend Coverage
+    name: Frontend Coverage
     runs-on: ubuntu-latest
 
     steps:
