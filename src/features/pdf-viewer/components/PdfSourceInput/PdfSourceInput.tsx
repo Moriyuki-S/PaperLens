@@ -2,7 +2,7 @@ import { Button, Input } from '@heroui/react';
 import { type DragEvent, type FormEvent, useId } from 'react';
 import { LuCloudUpload, LuFileUp } from 'react-icons/lu';
 
-import { cn } from '../../../lib/utils';
+import { cn } from '../../../../lib/utils';
 
 type PdfSourceInputVariant = 'dialog' | 'empty';
 

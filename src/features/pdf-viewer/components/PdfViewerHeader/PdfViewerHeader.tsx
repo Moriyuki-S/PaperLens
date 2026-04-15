@@ -8,7 +8,7 @@ import {
     LuZoomOut,
 } from 'react-icons/lu';
 
-import { cn } from '../../../lib/utils';
+import { cn } from '../../../../lib/utils';
 
 interface PdfViewerHeaderProps {
     selectedFileName?: string | null;
