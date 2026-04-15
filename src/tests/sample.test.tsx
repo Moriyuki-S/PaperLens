@@ -18,8 +18,10 @@ describe('Sample RTL test', () => {
         expect(
             screen.getByRole('button', { name: 'Open PDF' }),
         ).toBeInTheDocument();
-        expect(screen.getByRole('heading', { name: 'PaperLens' }).closest('section')).toHaveClass(
-            'paper-lens-shell',
-        );
+        expect(
+            screen
+                .getByRole('heading', { name: 'PaperLens' })
+                .closest('section'),
+        ).toHaveClass('paper-lens-shell');
     });
 });
