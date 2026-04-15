@@ -36,7 +36,7 @@
     "react-pdf": "^10.2.0",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.14",
-    "vite-plugin-static-copy": "^3.1.4"
+    "vite-plugin-static-copy": "^4.0.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.6",
