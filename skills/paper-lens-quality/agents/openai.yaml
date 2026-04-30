@@ -1,0 +1,4 @@
+interface:
+  display_name: "PaperLens Quality"
+  short_description: "Run the right PaperLens validation workflow"
+  default_prompt: "Use $paper-lens-quality to choose and run the right checks before finishing PaperLens changes."
