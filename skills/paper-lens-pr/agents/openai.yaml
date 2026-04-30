@@ -1,0 +1,4 @@
+interface:
+  display_name: "PaperLens PR Description"
+  short_description: "Draft a PaperLens pull request title and description"
+  default_prompt: "Use $paper-lens-pr to generate a GitHub-ready PR title and description from the current PaperLens changes."

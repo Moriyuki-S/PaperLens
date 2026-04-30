@@ -32,6 +32,7 @@ You are an expert Full-Stack Developer specializing in Tauri v2, React, TypeScri
 - Use `skills/paper-lens-pdf-viewer` for PDF loading, file or URL selection, drag and drop, rendering, outline navigation, zoom, print, layout, or viewer tests.
 - Use `skills/paper-lens-tauri` for Tauri commands, Rust modules, desktop capabilities, frontend-to-Rust invocation, and Rust tests.
 - Use `skills/paper-lens-quality` when choosing validation commands before finishing work.
+- Use `skills/paper-lens-pr` for generating pull request titles and descriptions from local changes.
 
 ## Custom Commands
 
@@ -40,6 +41,7 @@ You are an expert Full-Stack Developer specializing in Tauri v2, React, TypeScri
 - Use `.codex/commands/impl-tauri.md` as `/impl-tauri` for Tauri and Rust implementation work.
 - Use `.codex/commands/check.md` as `/check` for selecting and running validation.
 - Use `.codex/commands/review-ai-risk.md` as `/review-ai-risk` for AI usage, privacy, and confidentiality review.
+- Use `.codex/commands/pr-description.md` as `/pr-description` for generating a pull request title and description.
 
 ## Validation
 
