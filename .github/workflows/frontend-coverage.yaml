@@ -33,7 +33,7 @@ jobs:
         run: node ./node_modules/vitest/vitest.mjs run --coverage
 
       - name: Upload frontend coverage to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         with:
           files: ./coverage/lcov.info
           flags: frontend
